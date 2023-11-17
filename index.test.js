@@ -1,5 +1,5 @@
 const {sequelize} = require('./db')
-const {Restaurant, Menu} = require('./models/index')
+const {Restaurant, Menu, Item} = require('./models/index')
 const {
     seedRestaurant,
     seedMenu,
@@ -57,4 +57,29 @@ describe('Restaurant and Menu Models', () => {
         const del = await Menu.destroy({where: {title: "Brunch"}})
         expect(del).toEqual(1)
     });
+
+    test('menus to a restaurant association', async () => {
+        await Restaurant.bulkCreate(seedRestaurant)
+        await Menu.bulkCreate(seedMenu)
+        const allMenus = await Menu.findAll()
+        const appleBees = await Restaurant.findOne({where: {name: "AppleBees"}})
+        await appleBees.addMenus([allMenus[1], allMenus[2], allMenus[3]])
+        const apple = await Restaurant.findOne({where: {name: "AppleBees"}, include: Menu})
+        expect(apple.menus.length).toBe(3)
+    })
+    
+    test('menus to items association', async () => {
+        const dinnerMenu = await Menu.findOne({where: {title: "Dinner"}, include: Item})
+        await Item.bulkCreate([
+            {name: "Pie", image: "pie_img", prie: 5, vegetarian: true},
+            {name: "Steak", image: "steak_img", prie: 15, vegetarian: false},
+            {name: "Pulled Pork", image: "PP.jpeg", prie: 12, vegetarian: false}
+        ])
+        const allItems = await Item.findAll()
+        await dinnerMenu.addItems(allItems)
+        const newMenu = await Menu.findOne({where: {title: "Dinner"}, include: Item})
+        expect(newMenu.items.length).toBe(3)
+    })
+
+
 })
